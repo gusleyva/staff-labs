@@ -1,0 +1,39 @@
+# Ignore build outputs
+.gradle/
+build/
+bin/
+out/
+target/
+
+# Ignore IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.DS_Store
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore database
+*.db
+*.sqlite
+
+# Ignore Docker volumes
+postgres_data/
+prometheus_data/
+tempo_data/
+grafana_data/
+
+# Ignore k6 output
+load/summary.json
+load/*.html
+
+# Ignore application-local.yml
+application-local.yml
+
+# Ignore Gradle distribution
+gradle-*.zip
+gradle-*/
