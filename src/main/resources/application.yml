@@ -69,7 +69,46 @@ logging:
 
 # Custom app properties
 app:
+  resilience:
+    enabled: true  # Master toggle for all resilience patterns (circuit breaker, retry, bulkhead, rate limiter)
   external-service:
     url: http://localhost:8081/mock
-    jitter-ms: 50
-    failure-rate: 0.1
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      externalService:
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 20
+        slowCallDurationThreshold: 2s
+  retry:
+    instances:
+      externalService:
+        maxAttempts: 3
+        waitDuration: 100ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.util.concurrent.TimeoutException
+          - java.lang.RuntimeException # We'll need to be specific about what constitutes a 5xx in the service
+        ignoreExceptions:
+          - java.lang.IllegalArgumentException # simulating 4xx
+  bulkhead:
+    instances:
+      externalService:
+        maxConcurrentCalls: 3
+        maxWaitDuration: 0ms
+  ratelimiter:
+    instances:
+      externalService:
+        limitForPeriod: 50
+        limitRefreshPeriod: 1m
+        timeoutDuration: 0ms
+

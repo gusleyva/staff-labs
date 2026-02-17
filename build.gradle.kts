@@ -27,6 +27,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
     
     // Database
     implementation("org.postgresql:postgresql")
@@ -44,6 +46,9 @@ dependencies {
     
     // Logback JSON
     implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+    
+    // Loki Logback Appender
+    implementation("com.github.loki4j:loki-logback-appender:1.5.1")
     
     // Lombok
     compileOnly("org.projectlombok:lombok")

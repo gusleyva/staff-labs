@@ -4,7 +4,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -18,28 +17,30 @@ public class ExternalService {
 
     private final MeterRegistry meterRegistry;
     private final RestClient restClient;
-
-    @Value("${app.external-service.jitter-ms:50}")
-    private int jitterMs;
-
-    @Value("${app.external-service.failure-rate:0.1}")
-    private double failureRate;
+    private final com.stafflabs.config.MockConfig mockConfig;
 
     /**
      * Simulates calling an external service with jitter and random failures
      * Uses virtual threads if available (Java 21)
      */
+    @io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker(name = "externalService", fallbackMethod = "fallback")
+    @io.github.resilience4j.retry.annotation.Retry(name = "externalService")
+    @io.github.resilience4j.bulkhead.annotation.Bulkhead(name = "externalService", type = io.github.resilience4j.bulkhead.annotation.Bulkhead.Type.SEMAPHORE)
+    @io.github.resilience4j.ratelimiter.annotation.RateLimiter(name = "externalService")
     public String callExternalService() {
         Timer.Sample sample = Timer.start(meterRegistry);
 
         try {
+            int jitterMs = mockConfig.getDelayMs();
+            double failureRate = mockConfig.getFailureRate();
+
             // Simulate network jitter
             if (jitterMs > 0) {
                 int actualJitter = ThreadLocalRandom.current().nextInt(0, jitterMs * 2);
                 Thread.sleep(actualJitter);
             }
 
-            // Simulate random failures (10% by default)
+            // Simulate random failures
             Random rand = ThreadLocalRandom.current();
             if (rand.nextDouble() < failureRate) {
                 meterRegistry.counter("external.service.failures").increment();
@@ -60,5 +61,11 @@ public class ExternalService {
             meterRegistry.counter("external.service.interrupted").increment();
             throw new RuntimeException("External service call interrupted", e);
         }
+    }
+
+    public String fallback(Throwable t) {
+        log.error("External service fallback triggered. Reason: {}", t.getMessage());
+        meterRegistry.counter("external.service.fallback").increment();
+        return "Graceful Degradation: Cached Response (Service Unavailable)";
     }
 }

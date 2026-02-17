@@ -17,6 +17,7 @@ import java.util.Map;
 public class AdminController {
 
     private final OrderService orderService;
+    private final com.stafflabs.config.MockConfig mockConfig;
 
     /**
      * Seed endpoint - high-speed batch insertion using JdbcTemplate
@@ -45,5 +46,33 @@ public class AdminController {
         response.put("ordersPerSecond", count * 1000.0 / duration);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping({ "/mock/configure", "/mock/config" })
+    public ResponseEntity<Map<String, Object>> configureMock(
+            @RequestBody(required = false) MockSettings settings,
+            @RequestParam(required = false) Double failureRate,
+            @RequestParam(required = false) Integer delayMs) {
+
+        // Priority: RequestBody > RequestParam > CurrentValue
+        Double finalFailureRate = (settings != null && settings.failureRate() != null) ? settings.failureRate()
+                : failureRate;
+        Integer finalDelayMs = (settings != null && settings.delayMs() != null) ? settings.delayMs() : delayMs;
+
+        if (finalFailureRate != null) {
+            mockConfig.setFailureRate(finalFailureRate);
+        }
+        if (finalDelayMs != null) {
+            mockConfig.setDelayMs(finalDelayMs);
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Mock settings updated",
+                "currentSettings", Map.of(
+                        "failureRate", mockConfig.getFailureRate(),
+                        "delayMs", mockConfig.getDelayMs())));
+    }
+
+    public record MockSettings(Double failureRate, Integer delayMs) {
     }
 }
